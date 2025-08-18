@@ -5,12 +5,14 @@ public class ProjectileController : MonoBehaviour
     public float maxLifetime = 5f;
     private float lifeTime = 0f;
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerEnter(Collider other)
     {
-        GateController gate = collision.gameObject.GetComponentInParent<GateController>();
+        GateController gate = other.GetComponentInParent<GateController>();
         if (gate != null)
+        {
             gate.OnShot();
-        Destroy(gameObject);
+            Destroy(gameObject);
+        }
     }
 
     void Update()

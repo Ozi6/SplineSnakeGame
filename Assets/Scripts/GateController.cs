@@ -12,6 +12,7 @@ public class GateController : MonoBehaviour
     void Start()
     {
         UpdateDisplay();
+        Collider col = GetComponent<Collider>();
     }
 
     void OnEnable()
@@ -35,9 +36,9 @@ public class GateController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.transform == SnakeController.Instance.head)
+        if (other.transform == SnakeSplineController.Instance.head)
         {
-            SnakeController.Instance.ChangeLength(value);
+            SnakeSplineController.Instance.Grow(value);
             if (LevelGenerator.Instance != null)
                 gameObject.SetActive(false);
             else
