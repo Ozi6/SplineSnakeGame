@@ -12,7 +12,6 @@ public class GateController : MonoBehaviour
     void Start()
     {
         UpdateDisplay();
-        Collider col = GetComponent<Collider>();
     }
 
     void OnEnable()
