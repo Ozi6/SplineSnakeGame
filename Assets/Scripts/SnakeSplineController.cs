@@ -4,14 +4,33 @@ using Dreamteck.Splines;
 public class SnakeSplineController : MonoBehaviour
 {
     public static SnakeSplineController Instance { get; private set; }
+
+    [Header("Snake Settings")]
     public Transform head;
     public float snakeLength = 5f;
     public float minAddDistance = 0.5f;
+
+    [Header("Wave Effects")]
+    public float waveAmplitude = 0.3f;
+    public float waveFrequency = 2f;
+    public float waveDecayRate = 2f;
+
+    [Header("Growth Effects")]
+    public GameObject growthEffectPrefab;
+    public float growthEffectSpeed = 10f;
+    public float growthEffectScale = 2f;
+
+    [Header("Shooting")]
+    public float shootInterval = 0.5f;
+    public GameObject projectilePrefab;
+
     private SplineComputer spline;
     private SplineMesh splineMesh;
     private Vector3 lastAddedPosition;
-    public float shootInterval = 0.5f;
-    public GameObject projectilePrefab;
+    private float waveTime = 0f;
+    private bool isWaving = false;
+    private float lastStrafeDirection = 0f;
+    private float strafeStopTime = 0f;
 
     void Start()
     {
@@ -35,7 +54,46 @@ public class SnakeSplineController : MonoBehaviour
             lastAddedPosition = head.position;
         }
 
+        UpdateWaveEffect();
         TrimSpline();
+    }
+
+    private void UpdateWaveEffect()
+    {
+        if (isWaving)
+        {
+            waveTime += Time.deltaTime;
+            ApplyWaveToSpline();
+            if (waveTime > 3f / waveDecayRate)
+            {
+                isWaving = false;
+                waveTime = 0f;
+            }
+        }
+    }
+
+    private void ApplyWaveToSpline()
+    {
+        SplinePoint[] points = spline.GetPoints();
+        for (int i = 0; i < points.Length; i++)
+        {
+            float normalizedPosition = (float)i / (points.Length - 1);
+            float waveOffset = Mathf.Sin(normalizedPosition * waveFrequency + waveTime * 3f) *
+                              waveAmplitude * lastStrafeDirection *
+                              Mathf.Exp(-waveTime * waveDecayRate);
+            Vector3 rightDirection = Vector3.Cross(Vector3.up, head.forward).normalized;
+            points[i].position += rightDirection * waveOffset * Time.deltaTime;
+        }
+
+        spline.SetPoints(points);
+    }
+
+    public void OnStrafeStop(float strafeDirection)
+    {
+        lastStrafeDirection = strafeDirection;
+        isWaving = true;
+        waveTime = 0f;
+        strafeStopTime = Time.time;
     }
 
     private SplinePoint CreateSplinePoint(Vector3 position)
@@ -62,7 +120,6 @@ public class SnakeSplineController : MonoBehaviour
         if (totalLength > snakeLength)
         {
             float excessLength = totalLength - snakeLength;
-
             SplinePoint[] currentPoints = spline.GetPoints();
             float accumulatedLength = 0f;
             int pointsToRemove = 0;
@@ -70,7 +127,6 @@ public class SnakeSplineController : MonoBehaviour
             for (int i = 0; i < currentPoints.Length - 1; i++)
             {
                 float segmentLength = Vector3.Distance(currentPoints[i].position, currentPoints[i + 1].position);
-
                 if (accumulatedLength + segmentLength < excessLength)
                 {
                     accumulatedLength += segmentLength;
@@ -87,6 +143,11 @@ public class SnakeSplineController : MonoBehaviour
                 spline.SetPoints(newPoints);
             }
         }
+        float breathingScale = 1f + Mathf.Sin(Time.time * 1.5f) * 0.05f;
+        SplinePoint[] points = spline.GetPoints();
+        for (int i = 0; i < points.Length; i++)
+            points[i].size = breathingScale;
+        spline.SetPoints(points);
 
         splineMesh.clipFrom = 0f;
         splineMesh.clipTo = 1f;
@@ -95,13 +156,49 @@ public class SnakeSplineController : MonoBehaviour
 
     public void Grow(float amount)
     {
+        float oldLength = snakeLength;
         snakeLength += amount;
+        if (growthEffectPrefab != null)
+            StartCoroutine(CreateGrowthEffect());
+    }
+
+    private System.Collections.IEnumerator CreateGrowthEffect()
+    {
+        SplinePoint[] points = spline.GetPoints();
+        if (points.Length < 2) yield break;
+        Vector3 startPos = head.position;
+        Vector3 endPos = points[0].position;
+        GameObject effect = Instantiate(growthEffectPrefab, startPos, Quaternion.identity);
+        effect.transform.localScale = Vector3.one * growthEffectScale;
+        Renderer effectRenderer = effect.GetComponent<Renderer>();
+        if (effectRenderer != null)
+            effectRenderer.material.color = Color.yellow;
+        float journey = 0f;
+        float speed = growthEffectSpeed;
+
+        while (journey <= 1f)
+        {
+            journey += Time.deltaTime * speed;
+            SplinePoint[] currentPoints = spline.GetPoints();
+            if (currentPoints.Length > 0)
+                endPos = currentPoints[0].position - head.forward * 2f;
+            effect.transform.position = Vector3.Lerp(startPos, endPos, journey);
+            float scale = Mathf.Lerp(growthEffectScale, 0.1f, journey);
+            effect.transform.localScale = Vector3.one * scale;
+            yield return null;
+        }
+        Destroy(effect);
     }
 
     void Shoot()
     {
-        GameObject proj = Instantiate(projectilePrefab, head.position + head.forward * 0.5f, head.rotation);
-        proj.GetComponent<Rigidbody>().linearVelocity = head.forward * 20f;
-        Destroy(proj, 5f);
+        if (projectilePrefab != null)
+        {
+            GameObject proj = Instantiate(projectilePrefab, head.position + head.forward * 0.5f, head.rotation);
+            Rigidbody rb = proj.GetComponent<Rigidbody>();
+            if (rb != null)
+                rb.linearVelocity = head.forward * 20f;
+            Destroy(proj, 5f);
+        }
     }
 }
