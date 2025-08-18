@@ -55,7 +55,7 @@ public class SnakeSplineController : MonoBehaviour
         }
 
         UpdateWaveEffect();
-        TrimSpline();
+        TrimSplineToLength();
     }
 
     private void UpdateWaveEffect()
@@ -113,17 +113,15 @@ public class SnakeSplineController : MonoBehaviour
         spline.SetPoints(newPoints);
     }
 
-    private void TrimSpline()
+    private void TrimSplineToLength()
     {
         float totalLength = spline.CalculateLength();
-
         if (totalLength > snakeLength)
         {
             float excessLength = totalLength - snakeLength;
             SplinePoint[] currentPoints = spline.GetPoints();
             float accumulatedLength = 0f;
             int pointsToRemove = 0;
-
             for (int i = 0; i < currentPoints.Length - 1; i++)
             {
                 float segmentLength = Vector3.Distance(currentPoints[i].position, currentPoints[i + 1].position);
@@ -135,7 +133,6 @@ public class SnakeSplineController : MonoBehaviour
                 else
                     break;
             }
-
             if (pointsToRemove > 0 && currentPoints.Length > pointsToRemove + 1)
             {
                 SplinePoint[] newPoints = new SplinePoint[currentPoints.Length - pointsToRemove];
@@ -143,23 +140,22 @@ public class SnakeSplineController : MonoBehaviour
                 spline.SetPoints(newPoints);
             }
         }
-        float breathingScale = 1f + Mathf.Sin(Time.time * 1.5f) * 0.05f;
-        SplinePoint[] points = spline.GetPoints();
-        for (int i = 0; i < points.Length; i++)
-            points[i].size = breathingScale;
-        spline.SetPoints(points);
-
-        splineMesh.clipFrom = 0f;
-        splineMesh.clipTo = 1f;
-        splineMesh.RebuildImmediate();
     }
+
 
     public void Grow(float amount)
     {
         float oldLength = snakeLength;
         snakeLength += amount;
-        if (growthEffectPrefab != null)
+        snakeLength = Mathf.Max(snakeLength, 1f);
+        if (amount > 0 && growthEffectPrefab != null)
             StartCoroutine(CreateGrowthEffect());
+        else if (amount < 0)
+        {
+            TrimSplineToLength();
+            if (growthEffectPrefab != null)
+                StartCoroutine(CreateShrinkEffect());
+        }
     }
 
     private System.Collections.IEnumerator CreateGrowthEffect()
@@ -182,6 +178,30 @@ public class SnakeSplineController : MonoBehaviour
             SplinePoint[] currentPoints = spline.GetPoints();
             if (currentPoints.Length > 0)
                 endPos = currentPoints[0].position - head.forward * 2f;
+            effect.transform.position = Vector3.Lerp(startPos, endPos, journey);
+            float scale = Mathf.Lerp(growthEffectScale, 0.1f, journey);
+            effect.transform.localScale = Vector3.one * scale;
+            yield return null;
+        }
+        Destroy(effect);
+    }
+
+    private System.Collections.IEnumerator CreateShrinkEffect()
+    {
+        SplinePoint[] points = spline.GetPoints();
+        if (points.Length < 2) yield break;
+        Vector3 startPos = points[0].position;
+        Vector3 endPos = points[points.Length - 1].position;
+        GameObject effect = Instantiate(growthEffectPrefab, startPos, Quaternion.identity);
+        effect.transform.localScale = Vector3.one * growthEffectScale;
+        Renderer effectRenderer = effect.GetComponent<Renderer>();
+        if (effectRenderer != null)
+            effectRenderer.material.color = Color.red;
+        float journey = 0f;
+        float speed = growthEffectSpeed;
+        while (journey <= 1f)
+        {
+            journey += Time.deltaTime * speed;
             effect.transform.position = Vector3.Lerp(startPos, endPos, journey);
             float scale = Mathf.Lerp(growthEffectScale, 0.1f, journey);
             effect.transform.localScale = Vector3.one * scale;
