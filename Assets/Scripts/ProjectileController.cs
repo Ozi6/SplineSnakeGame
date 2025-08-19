@@ -7,7 +7,7 @@ public class ProjectileController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        GateController gate = other.GetComponentInParent<GateController>();
+        LengthGateController gate = other.GetComponentInParent<LengthGateController>();
         if (gate != null)
         {
             gate.OnShot();

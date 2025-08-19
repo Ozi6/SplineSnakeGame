@@ -24,6 +24,15 @@ public class SnakeSplineController : MonoBehaviour
     public float shootInterval = 0.5f;
     public GameObject projectilePrefab;
 
+    [Header("Color Settings")]
+    public Color initialColor = Color.white;
+    public float colorTransitionSpeed = 2f;
+
+    private Color currentColor;
+    private Color targetColor;
+    private bool isTransitioningColor = false;
+    private float colorTransitionTime = 0f;
+
     private SplineComputer spline;
     private SplineMesh splineMesh;
     private Vector3 lastAddedPosition;
@@ -32,12 +41,18 @@ public class SnakeSplineController : MonoBehaviour
     private float lastStrafeDirection = 0f;
     private float strafeStopTime = 0f;
 
+    private Renderer headRenderer;
+
     void Start()
     {
         Instance = this;
+        currentColor = initialColor;
+        targetColor = initialColor;
         spline = GetComponent<SplineComputer>();
         splineMesh = GetComponent<SplineMesh>();
         splineMesh.multithreaded = false;
+
+        headRenderer = head.GetComponent<Renderer>();
 
         SplinePoint initialPoint = CreateSplinePoint(head.position);
         spline.SetPoints(new SplinePoint[] { initialPoint });
@@ -53,9 +68,45 @@ public class SnakeSplineController : MonoBehaviour
             AddPoint(head.position);
             lastAddedPosition = head.position;
         }
-
         UpdateWaveEffect();
+        UpdateColorTransition();
         TrimSplineToLength();
+    }
+
+    private void UpdateColorTransition()
+    {
+        if (isTransitioningColor)
+        {
+            colorTransitionTime += Time.deltaTime * colorTransitionSpeed;
+            ApplyGradualColorChange();
+            if (colorTransitionTime >= 1f)
+            {
+                isTransitioningColor = false;
+                colorTransitionTime = 0f;
+                currentColor = targetColor;
+            }
+        }
+    }
+
+    private void ApplyGradualColorChange()
+    {
+        SplinePoint[] points = spline.GetPoints();
+        if (points.Length == 0) return;
+        float waveProgress = colorTransitionTime;
+        for (int i = 0; i < points.Length; i++)
+        {
+            float normalizedPosition = (float)(points.Length - 1 - i) / Mathf.Max(1, points.Length - 1);
+            Color pointColor;
+            if (normalizedPosition <= waveProgress)
+                pointColor = targetColor;
+            else
+                pointColor = currentColor;
+            points[i].color = pointColor;
+        }
+        spline.SetPoints(points);
+        if (headRenderer != null)
+            if (colorTransitionTime > 0f)
+                headRenderer.material.color = targetColor;
     }
 
     private void UpdateWaveEffect()
@@ -100,6 +151,7 @@ public class SnakeSplineController : MonoBehaviour
     {
         SplinePoint point = new SplinePoint(position);
         point.size = 1f;
+        point.color = currentColor;
         return point;
     }
 
@@ -142,7 +194,6 @@ public class SnakeSplineController : MonoBehaviour
         }
     }
 
-
     public void Grow(float amount)
     {
         float oldLength = snakeLength;
@@ -156,6 +207,15 @@ public class SnakeSplineController : MonoBehaviour
             if (growthEffectPrefab != null)
                 StartCoroutine(CreateShrinkEffect());
         }
+    }
+
+    public void ChangeColor(Color newColor)
+    {
+        if (newColor == currentColor && newColor == targetColor) return;
+
+        targetColor = newColor;
+        isTransitioningColor = true;
+        colorTransitionTime = 0f;
     }
 
     private System.Collections.IEnumerator CreateGrowthEffect()

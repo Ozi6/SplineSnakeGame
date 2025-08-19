@@ -9,10 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6075778789020807018}
-  - component: {fileID: 5599282392032025504}
   - component: {fileID: 6299705563938165373}
+  - component: {fileID: 6505325869167623966}
   m_Layer: 0
-  m_Name: Gate
+  m_Name: LengthGate
   m_TagString: Gate
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -35,23 +35,6 @@ Transform:
   - {fileID: 5151214426602094399}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5599282392032025504
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 508817224542466076}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd8d46a70314be749956fe143aa8a622, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  value: 5
-  valueText: {fileID: 5715542212414989390}
-  gateRenderer: {fileID: 251531808879196743}
-  positiveColor: {r: 0, g: 1, b: 0, a: 0.5}
-  negativeColor: {r: 1, g: 0, b: 0, a: 0.5}
 --- !u!65 &6299705563938165373
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -73,6 +56,24 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3, y: 5, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6505325869167623966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 508817224542466076}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca7284c8bbd8cb7449518dca9db188b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  valueText: {fileID: 5715542212414989390}
+  gateRenderer: {fileID: 251531808879196743}
+  colorTransitionSpeed: 5
+  value: 5
+  positiveColor: {r: 0, g: 1, b: 0, a: 0.5}
+  negativeColor: {r: 1, g: 0, b: 0, a: 0.5}
 --- !u!1 &1504804523449030116
 GameObject:
   m_ObjectHideFlags: 0

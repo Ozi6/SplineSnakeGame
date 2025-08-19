@@ -1,13 +1,13 @@
 using UnityEngine;
 using TMPro;
 
-public class GateController : MonoBehaviour
+public abstract class BaseGate : MonoBehaviour
 {
-    public int value = 5;
     public TextMeshPro valueText;
     public MeshRenderer gateRenderer;
-    public Color positiveColor = new Color(0f, 1f, 0f, 0.5f);
-    public Color negativeColor = new Color(1f, 0f, 0f, 0.5f);
+    public float colorTransitionSpeed = 5f;
+
+    protected Color targetColor;
 
     void Start()
     {
@@ -19,29 +19,33 @@ public class GateController : MonoBehaviour
         UpdateDisplay();
     }
 
-    public void UpdateDisplay()
+    void Update()
     {
-        if (valueText != null)
-            valueText.text = (value >= 0 ? "+" : "") + value.ToString();
         if (gateRenderer != null)
-            gateRenderer.material.color = value >= 0 ? positiveColor : negativeColor;
+        {
+            gateRenderer.material.color = Color.Lerp(
+                gateRenderer.material.color,
+                targetColor,
+                Time.deltaTime * colorTransitionSpeed
+            );
+        }
     }
 
-    public void OnShot()
-    {
-        value++;
-        UpdateDisplay();
-    }
+    public virtual void UpdateDisplay() { }
+
+    public virtual void OnShot() { }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.transform == SnakeSplineController.Instance.head)
         {
-            SnakeSplineController.Instance.Grow(value);
+            ApplyEffect();
             if (LevelGenerator.Instance != null)
                 gameObject.SetActive(false);
             else
                 Destroy(gameObject);
         }
     }
+
+    protected abstract void ApplyEffect();
 }
